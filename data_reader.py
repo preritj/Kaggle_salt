@@ -1,9 +1,12 @@
+import functools
 import os
+from glob import glob
+
 import pandas as pd
 import tensorflow as tf
-from glob import glob
-import functools
-import tfrecord_util
+
+from utils import tfrecord_util
+from utils import data_util
 
 slim_example_decoder = tf.contrib.slim.tfexample_decoder
 
@@ -96,5 +99,24 @@ class Dataset(object):
         dataset = dataset.map(
             decode_fn, num_parallel_calls=cfg.num_parallel_map_calls)
         dataset = dataset.prefetch(cfg.prefetch_size)
+        crop_resize_fn = functools.partial(
+            data_util.random_crop_and_resize,
+            min_scale=0.9,
+            input_shape=(101, 101),
+            target_shape=(96, 96)
+        )
+        dataset = dataset.map(
+            crop_resize_fn,
+            num_parallel_calls=cfg.num_parallel_map_calls)
+        dataset = dataset.prefetch(cfg.prefetch_size)
+        dataset = dataset.map(
+            data_util.random_rotate,
+            num_parallel_calls=cfg.num_parallel_map_calls)
+        dataset = dataset.prefetch(cfg.prefetch_size)
+        dataset = dataset.map(
+            data_util.random_flip_left_right,
+            num_parallel_calls=cfg.num_parallel_map_calls)
+        dataset = dataset.prefetch(cfg.prefetch_size)
+        return dataset
 
         
